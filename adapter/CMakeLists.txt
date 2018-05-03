@@ -24,7 +24,7 @@
 include(${PARAVIEW_USE_FILE})
 
 
-set(SOURCE CppAdaptor.cpp management.cpp management.h gridHandler.cpp gridHandler.h insitulink.h)
+set(SOURCE CppAdaptor.cpp management.h gridHandler.h)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 source_group("sources" FILES ${SOURCE})

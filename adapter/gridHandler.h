@@ -11,6 +11,9 @@
 #include <vtkDataArray.h>
 #include <vtkSmartPointer.h>
 
+#include <vtkCellArray.h>
+#include <vtkCellData.h>
+#include <vtkCell.h>
 
 static char pointIdName[12] = "Node Number";
 static char cellIdName[15]  = "Element Number";
@@ -33,12 +36,15 @@ public:
 
 	void addCell(int FeapCellNumber, int FeapCellSubNumber , int *pointIds, int numpoints, int vtkNumber);
 
+	template<typename T>
+	void SetCellData(const T *data, const int &num_comp, const int &feapCellNumber, const int &feapSubCellNumber);
+
 private:
 
 	enum DataType {PointData, CellData};
 
 	template <typename T>
-	void createField(const char *name, const int &numComp);
+	void createField(const char *name, const int &numComp, const DataType &type);
 
 	bool hasField(const char *name,const DataType &type);
 
@@ -49,6 +55,36 @@ private:
 
 };
 
+
+inline gridHandler::gridHandler()
+{
+	this->grid = vtkUnstructuredGrid::New();
+	vtkPoints *points =
+		vtkPoints::New();
+	this->grid->SetPoints(points);
+	vtkIntArray *feapIds =
+		vtkIntArray::New();
+	feapIds->SetName(pointIdName);
+	feapIds->SetNumberOfComponents(1);
+	vtkIntArray *feapCellIds =
+		vtkIntArray::New();
+	feapCellIds->SetName(cellIdName);
+	feapCellIds->SetNumberOfComponents(2);
+	this->grid->GetPointData()->AddArray(feapIds);
+	this->grid->GetCellData()->AddArray(feapCellIds);
+
+}
+
+inline gridHandler::~gridHandler()
+{
+}
+
+inline vtkUnstructuredGrid * gridHandler::getGrid()
+{
+	return this->grid;
+}
+
+
 template<typename T>
 inline void gridHandler::CompleteFeapPointArray(const T * data, const int & num_comp, 
 	const int & numPoints, const char *name)
@@ -57,7 +93,7 @@ inline void gridHandler::CompleteFeapPointArray(const T * data, const int & num_
 
 	if (!this->hasField(name, DataType::PointData)) {
 
-		this->createField<T>(name, num_comp);
+		this->createField<T>(name, num_comp, DataType::PointData);
 
 	}
 
@@ -129,37 +165,107 @@ inline void gridHandler::SetFieldData(const T * data, const int & num_comp, cons
 }
 
 template<typename T>
-inline void gridHandler::createField(const char * name, const int &numComp)
+inline void gridHandler::createField(const char * name, const int &numComp, const DataType &type)
 {
-	if (!this->hasField(name, DataType::PointData)) {
 
-		int numnp = this->grid->GetNumberOfPoints();
+
+	bool present = true;
+	if (type == DataType::PointData) {
+		present = this->hasField(name, DataType::PointData);
+	}
+	else {
+		present = this->hasField(name, DataType::CellData);
+	}
+
+	if (!present) {
+		vtkAbstractArray* toAdd;
 		if (std::is_same<T, int>()) {
-
-			vtkIntArray* toAdd =
-				vtkIntArray::New();
-			toAdd->SetNumberOfComponents(numComp);
-			//toAdd->Allocate(numnp*numComp);
-			for (auto i = 0; i < numnp; ++i) {
-				for (auto j = 0; j < numComp; ++j) {
-					toAdd->InsertNextValue(0);
-				}
-			}
-			toAdd->SetName(name);
-			this->grid->GetPointData()->AddArray(toAdd);
+			toAdd = vtkIntArray::New();
 		}
 		else if (std::is_same<T, double>()) {
-			vtkDoubleArray *toAdd =
-				vtkDoubleArray::New();
-			toAdd->SetNumberOfComponents(numComp);
-			//toAdd->Allocate(numnp*numComp);
-			for (auto i = 0; i < numnp; ++i) {
-				for (auto j = 0; j < numComp; ++j) {
-					toAdd->InsertNextValue(0);
-				}
-			}
-			toAdd->SetName(name);
+			toAdd = vtkDoubleArray::New();
+		}
+		toAdd->SetName(name);
+		toAdd->SetNumberOfComponents(numComp);
+		if (type == DataType::PointData) {
+			toAdd->SetNumberOfTuples(this->grid->GetNumberOfPoints());
 			this->grid->GetPointData()->AddArray(toAdd);
 		}
+		else {
+			toAdd->SetNumberOfTuples(this->grid->GetNumberOfCells());
+			this->grid->GetCellData()->AddArray(toAdd);
+		}	
 	}
+
+}
+
+
+inline void gridHandler::addPoint(const int & FeapId, const double & x, const double & y, const double & z)
+{
+	auto search = this->FeapToParvMapPoints.find(FeapId);
+	if (search != this->FeapToParvMapPoints.end()) {
+
+	}
+	else {
+		this->grid->GetPoints()->InsertNextPoint(x, y, z);
+		vtkIdType parvnum = this->grid->GetPoints()->GetNumberOfPoints();
+		this->FeapToParvMapPoints[FeapId] = parvnum - 1;
+		this->grid->GetPointData()->GetArray(pointIdName)->InsertComponent(parvnum - 1, 0, FeapId);
+	}
+
+}
+
+inline void gridHandler::addCell(int FeapCellNumber, int FeapCellSubNumber, int * pointIds, int numpoints, int vtkNumber)
+{
+
+
+	auto vecSize = this->FeapToParvMapCells[FeapCellNumber].size();
+
+	while (vecSize < FeapCellSubNumber) {
+		this->FeapToParvMapCells[FeapCellNumber].emplace_back(-1);
+		++vecSize;
+	}
+
+	if (this->FeapToParvMapCells[FeapCellNumber][FeapCellSubNumber - 1] == -1) {
+
+		vtkIdList *list =
+			vtkIdList::New();
+		for (auto i = 0; i < numpoints; ++i)
+		{
+			list->InsertNextId(this->FeapToParvMapPoints[pointIds[i]]);
+		}
+		this->grid->InsertNextCell(vtkNumber, list);
+		int numcells = this->grid->GetNumberOfCells();
+		this->grid->GetCellData()->GetArray(cellIdName)->InsertComponent(numcells - 1, 0, FeapCellNumber);
+		this->grid->GetCellData()->GetArray(cellIdName)->InsertComponent(numcells - 1, 1, FeapCellSubNumber);
+	}
+}
+
+inline bool gridHandler::hasField(const char * name, const DataType &type)
+{
+
+	switch (type)
+	{
+	case DataType::PointData:
+		if (this->grid->GetPointData()->GetArray(name)) {
+			return true;
+		}
+		break;
+	case DataType::CellData:
+		if (this->grid->GetCellData()->GetArray(name)) {
+			return true;
+		}
+		break;
+	default:
+		break;
+	}
+
+	return false;
+}
+
+
+
+template<typename T>
+inline void SetCellData(const T *data, const int &num_comp, const int &feapCellNumber, const int &feapSubCellNumber) {
+
 }
