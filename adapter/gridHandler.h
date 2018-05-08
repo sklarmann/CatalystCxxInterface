@@ -37,7 +37,7 @@ public:
 	void addCell(int FeapCellNumber, int FeapCellSubNumber , int *pointIds, int numpoints, int vtkNumber);
 
 	template<typename T>
-	void SetCellData(const T *data, const int &num_comp, const int &feapCellNumber, const int &feapSubCellNumber);
+	void SetCellData(const T *data, const int &num_comp, const int &feapCellNumber, const int &feapSubCellNumber, const char *name);
 
 private:
 
@@ -238,6 +238,7 @@ inline void gridHandler::addCell(int FeapCellNumber, int FeapCellSubNumber, int 
 		int numcells = this->grid->GetNumberOfCells();
 		this->grid->GetCellData()->GetArray(cellIdName)->InsertComponent(numcells - 1, 0, FeapCellNumber);
 		this->grid->GetCellData()->GetArray(cellIdName)->InsertComponent(numcells - 1, 1, FeapCellSubNumber);
+		this->FeapToParvMapCells[FeapCellNumber][FeapCellSubNumber - 1] = numcells - 1;
 	}
 }
 
@@ -266,6 +267,17 @@ inline bool gridHandler::hasField(const char * name, const DataType &type)
 
 
 template<typename T>
-inline void SetCellData(const T *data, const int &num_comp, const int &feapCellNumber, const int &feapSubCellNumber) {
+inline void gridHandler::SetCellData(const T *data, const int &num_comp, const int &feapCellNumber, const int &feapSubCellNumber, const char *name) {
+	this->createField<T>(name, num_comp, DataType::CellData);
 
+	auto search = this->FeapToParvMapCells.find(feapCellNumber);
+	if (search != this->FeapToParvMapCells.end()) {
+		if (feapSubCellNumber <= search->second.size()) {
+			vtkIdType cellNum = search->second[feapSubCellNumber - 1];
+			vtkDataArray *arr = this->grid->GetCellData()->GetArray(name);
+			for (auto i = 0; i < num_comp; ++i) {
+				arr->SetComponent(cellNum, i, data[i]);
+			}
+		}
+	}
 }

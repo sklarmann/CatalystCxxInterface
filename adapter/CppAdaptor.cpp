@@ -143,8 +143,21 @@ extern "C" __declspec(dllexport) void EXPORTSTD SetDoubleFieldData(int *main, do
 		buff[i] = name[i];
 
 	buff[*namelen] = '\0';
-	paraviewHandler.SetFieldData<double>(*main, data, *num_comp, buff);
+	paraviewHandler.SetFieldData<double>(*main, data, *num_comp,buff);
 
 	delete[] buff;
 }
 
+
+extern "C" __declspec(dllexport) void EXPORTSTD SetDoubleCellData(int *main, int *part, 
+		int *feapCellNumber, int *feapSubCellNumber, 
+		double *data, int *num_comp, char *name, int *namelen) {
+	char *buff = new char[*namelen + 1];
+	for (auto i = 0; i < *namelen; ++i)
+		buff[i] = name[i];
+
+	buff[*namelen] = '\0';
+	paraviewHandler.setCellData<double>(*main, *part, *feapCellNumber, *feapSubCellNumber, data, *num_comp, buff);
+
+	delete[] buff;
+}

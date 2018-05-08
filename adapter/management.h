@@ -62,6 +62,10 @@ public:
 		const T *data, const int &num_comp, const char *name);
 
 	template<typename T>
+	void setCellData(const int &main, const int &part, const int &feapCellNumber, const int &feapSubCellNumber,
+		const T *data, const int &num_comp, const char *name);
+
+	template<typename T>
 	void SetFieldData(const int &main, const T *data, const int &num_comp, const char *name);
 
 	void Update();
@@ -379,6 +383,20 @@ inline void managementClass::addGrid(const int & main, const int & part)
 	}
 }
 
+template<typename T>
+inline void managementClass::setCellData(const int &main, const int &part, const int &feapCellNumber, const int &feapSubCellNumber,
+	const T *data, const int &num_comp, const char *name) {
+
+	if (this->checkGrid(main, part)) {
+		this->gridMapper[main][part].SetCellData<T>(data, num_comp, feapCellNumber, feapSubCellNumber, name);
+	}
+	else {
+		std::cout << "Error when trying to add complete data field " << name <<
+			" to main " << main << ", part " << part << "."
+			<< " Plot mesh does not exist!" << std::endl;
+	}
+	this->Update();
+}
 
 
 /**

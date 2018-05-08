@@ -24,6 +24,7 @@
 include(${PARAVIEW_USE_FILE})
 
 
+#set(SOURCE main.cpp management.h gridHandler.h)
 set(SOURCE CppAdaptor.cpp management.h gridHandler.h)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -33,7 +34,7 @@ message(${CMAKE_BINARY_DIR})
 
 
 add_library (${PNAME} SHARED ${SOURCE})
-
+#add_executable(${PNAME} ${SOURCE})
 
 
 target_link_libraries(${PNAME} PRIVATE vtkPVCatalyst vtkIOXML vtkPVAnimation)
