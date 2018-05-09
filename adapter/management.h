@@ -395,7 +395,6 @@ inline void managementClass::setCellData(const int &main, const int &part, const
 			" to main " << main << ", part " << part << "."
 			<< " Plot mesh does not exist!" << std::endl;
 	}
-	this->Update();
 }
 
 

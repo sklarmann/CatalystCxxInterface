@@ -121,6 +121,10 @@ extern "C" __declspec(dllexport) void EXPORTSTD writeFile() {
 	paraviewHandler.writeFile();
 }
 
+extern "C" __declspec(dllexport) void EXPORTSTD UpdateParaview() {
+	paraviewHandler.Update();
+}
+
 extern "C" __declspec(dllexport) void EXPORTSTD timeUpdate(double *time) {
 	paraviewHandler.TimeUpdate(*time);
 }
