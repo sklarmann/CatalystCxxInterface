@@ -2,17 +2,20 @@
 
 #include <management.h>
 
-#define EXPORTSTD 
+#define EXPORTSTD
 #ifdef __SALFORD_
 #define EXPORTSTD __stdcall
-#endif 
+#endif
 
-
+#define DLLEXPORT
+#ifdef WIN32
+#define DLLEXPORT __declspec(dllexport)
+#endif
 
 static managementClass paraviewHandler;
 
 
-extern "C" __declspec(dllexport) void EXPORTSTD initializeCoProcessing(
+extern "C" DLLEXPORT void EXPORTSTD initializeCoProcessing(
 	char *inputFileName, int *nameLength) {
 
 	char *buffer = new char[*nameLength + 1];
@@ -26,32 +29,32 @@ extern "C" __declspec(dllexport) void EXPORTSTD initializeCoProcessing(
 	delete[] buffer;
 }
 
-extern "C" __declspec(dllexport) void EXPORTSTD CoProcess() {
+extern "C" DLLEXPORT void EXPORTSTD CoProcess() {
 	paraviewHandler.CoProcess();
 }
 
-extern "C" __declspec(dllexport) void EXPORTSTD isRVEfunc() {
+extern "C" DLLEXPORT void EXPORTSTD isRVEfunc() {
 	paraviewHandler.isRVEfunc();
 }
 
-extern "C" __declspec(dllexport) void EXPORTSTD finalizeCoProcessing() {
+extern "C" DLLEXPORT void EXPORTSTD finalizeCoProcessing() {
 	paraviewHandler.finalizeCoProcessing();
 }
 
-extern "C" __declspec(dllexport) void EXPORTSTD addPoint(
+extern "C" DLLEXPORT void EXPORTSTD addPoint(
 	int *main, int*part, int *id, double *x, double *y, double *z) {
 	paraviewHandler.addPoint(*main, *part, *id, *x, *y, *z);
 }
 
-extern "C" __declspec(dllexport) void EXPORTSTD addCell(
+extern "C" DLLEXPORT void EXPORTSTD addCell(
 	int *main, int *part, int *FeapCellNumber, int *FeapSubCellNumber, int *FeapPoints, int *numpts, int *vtkNumber) {
 	paraviewHandler.addCell(*main,*part,*FeapCellNumber,*FeapSubCellNumber,FeapPoints,numpts,vtkNumber);
 }
 
 
-extern "C" __declspec(dllexport) void EXPORTSTD addIntPointDataAll(
+extern "C" DLLEXPORT void EXPORTSTD addIntPointDataAll(
 	int*main, int *data, int *num_comp, int *numpoints, char *name, int *namelen) {
-	
+
 	char *buff = new char[*namelen + 1];
 	for (auto i = 0; i < *namelen; ++i) {
 		buff[i] = name[i];
@@ -65,7 +68,7 @@ extern "C" __declspec(dllexport) void EXPORTSTD addIntPointDataAll(
 	delete[] buff;
 }
 
-extern "C" __declspec(dllexport) void EXPORTSTD addDoublePointDataAll(
+extern "C" DLLEXPORT void EXPORTSTD addDoublePointDataAll(
 	int* main, double *data, int *num_comp, int *numpoints, char *name, int *namelen) {
 
 	char *buff = new char[*namelen + 1];
@@ -82,7 +85,7 @@ extern "C" __declspec(dllexport) void EXPORTSTD addDoublePointDataAll(
 }
 
 
-extern "C" __declspec(dllexport) void EXPORTSTD addIntPointDataPart(
+extern "C" DLLEXPORT void EXPORTSTD addIntPointDataPart(
 	int*main, int* part, int *data, int *num_comp, int *numpoints, char *name, int *namelen) {
 
 	char *buff = new char[*namelen + 1];
@@ -98,7 +101,7 @@ extern "C" __declspec(dllexport) void EXPORTSTD addIntPointDataPart(
 	delete[] buff;
 }
 
-extern "C" __declspec(dllexport) void EXPORTSTD addDoublePointDataPart(
+extern "C" DLLEXPORT void EXPORTSTD addDoublePointDataPart(
 	int* main, int* part, double *data, int *num_comp, int *numpoints, char *name, int *namelen) {
 
 	char *buff = new char[*namelen + 1];
@@ -117,20 +120,20 @@ extern "C" __declspec(dllexport) void EXPORTSTD addDoublePointDataPart(
 }
 
 
-extern "C" __declspec(dllexport) void EXPORTSTD writeFile() {
+extern "C" DLLEXPORT void EXPORTSTD writeFile() {
 	paraviewHandler.writeFile();
 }
 
-extern "C" __declspec(dllexport) void EXPORTSTD UpdateParaview() {
+extern "C" DLLEXPORT void EXPORTSTD UpdateParaview() {
 	paraviewHandler.Update();
 }
 
-extern "C" __declspec(dllexport) void EXPORTSTD timeUpdate(double *time) {
+extern "C" DLLEXPORT void EXPORTSTD timeUpdate(double *time) {
 	paraviewHandler.TimeUpdate(*time);
 }
 
 
-extern "C" __declspec(dllexport) void EXPORTSTD SetIntFieldData(int *main, int *data, int *num_comp, char *name, int *namelen) {
+extern "C" DLLEXPORT void EXPORTSTD SetIntFieldData(int *main, int *data, int *num_comp, char *name, int *namelen) {
 	char *buff = new char[*namelen + 1];
 	for (auto i = 0; i < *namelen; ++i)
 		buff[i] = name[i];
@@ -141,7 +144,7 @@ extern "C" __declspec(dllexport) void EXPORTSTD SetIntFieldData(int *main, int *
 	delete[] buff;
 }
 
-extern "C" __declspec(dllexport) void EXPORTSTD SetDoubleFieldData(int *main, double *data, int *num_comp, char *name, int *namelen) {
+extern "C" DLLEXPORT void EXPORTSTD SetDoubleFieldData(int *main, double *data, int *num_comp, char *name, int *namelen) {
 	char *buff = new char[*namelen + 1];
 	for (auto i = 0; i < *namelen; ++i)
 		buff[i] = name[i];
@@ -153,8 +156,8 @@ extern "C" __declspec(dllexport) void EXPORTSTD SetDoubleFieldData(int *main, do
 }
 
 
-extern "C" __declspec(dllexport) void EXPORTSTD SetDoubleCellData(int *main, int *part, 
-		int *feapCellNumber, int *feapSubCellNumber, 
+extern "C" DLLEXPORT void EXPORTSTD SetDoubleCellData(int *main, int *part,
+		int *feapCellNumber, int *feapSubCellNumber,
 		double *data, int *num_comp, char *name, int *namelen) {
 	char *buff = new char[*namelen + 1];
 	for (auto i = 0; i < *namelen; ++i)

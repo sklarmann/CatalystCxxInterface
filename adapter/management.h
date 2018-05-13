@@ -33,7 +33,7 @@ public:
 	~managementClass();
 
 	//Deprecated
-	
+
 
 	void addPoints(double *coor, int &numpoints, int &ndm);
 
@@ -76,7 +76,7 @@ public:
 
 
 private:
-	bool checkGrid(const int &main,const int &part); 
+	bool checkGrid(const int &main,const int &part);
 	void addGrid(const int &main, const int &part);
 
 
@@ -129,7 +129,7 @@ private:
 									m_tstep = 0:			Current timestep
 									m_time = 0.0:			Current time
 									isRVE = false:			Wheter plot-data represent a RVE
-			
+
 **/
 inline managementClass::managementClass() {
 	vtkSmartPointer<vtkUnstructuredGrid> grid =
@@ -155,7 +155,7 @@ inline managementClass::~managementClass() {
 }
 
 /**
-		initialize clears the data, reads and sets up the file name. 
+		initialize clears the data, reads and sets up the file name.
 **/
 inline void managementClass::initialize(char * sname)
 {
@@ -207,7 +207,7 @@ inline bool managementClass::checkGrid(const int &main, const int &part)
 template<typename T>
 inline void managementClass::addCompleteFeapPointArray(const int & main, const int & part, const T * data, const int & num_comp, const int & numPoints, const char * name)
 {
-	
+
 	if (this->checkGrid(main, part)) {
 		this->gridMapper[main][part].CompleteFeapPointArray<T>(
 			data, num_comp, numPoints, name);
@@ -234,27 +234,28 @@ inline void managementClass::addCompleteFeapPointArrayToAll(const int &main,
 }
 
 template<typename T>
-inline void managementClass::setPointData(const int & main, 
-	const int & part, const int & feapId, const T * data, 
+inline void managementClass::setPointData(const int & main,
+	const int & part, const int & feapId, const T * data,
 	const int & num_comp, const char * name)
 {
+	/**
 	int tlen = name_len + 1;
 	char *buff = new char[name_len + 1];
 	for (auto i = 0; i < name_len; ++i) {
 		buff[i] = name[i];
 	}
 	buff[name_len] = '\0';
-
+  **/
 	if (this->checkGrid(main, part)) {
 		this->gridMapper[main][part].SetPointData<T>(
-			data, feapId, num_comp, buff);
+			data, feapId, num_comp, name);
 	}
 	else {
-		std::cout << "Error when trying to add complete data field " << buff <<
+		std::cout << "Error when trying to add complete data field " << name <<
 			" to main " << main << ", part " << part << "."
 			<< " Plot mesh does not exist!" << std::endl;
 	}
-	delete buff;
+
 	this->Update();
 }
 

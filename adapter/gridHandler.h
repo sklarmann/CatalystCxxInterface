@@ -86,7 +86,7 @@ inline vtkUnstructuredGrid * gridHandler::getGrid()
 
 
 template<typename T>
-inline void gridHandler::CompleteFeapPointArray(const T * data, const int & num_comp, 
+inline void gridHandler::CompleteFeapPointArray(const T * data, const int & num_comp,
 	const int & numPoints, const char *name)
 {
 
@@ -126,7 +126,7 @@ inline void gridHandler::SetPointData(const T * data, const int & feapId
 	}
 
 	auto search = this->FeapToParvMapPoints.find(feapId);
-	if (!search == this->FeapToParvMapPoints.end()) {
+	if (search != this->FeapToParvMapPoints.end()) {
 		vtkIdType vtkPointNumber = search->second;
 		vtkDataArray *arr = this->grid->GetPointData()->GetArray(name);
 		for (auto i = 0; i < num_comp; ++i) {
@@ -194,7 +194,7 @@ inline void gridHandler::createField(const char * name, const int &numComp, cons
 		else {
 			toAdd->SetNumberOfTuples(this->grid->GetNumberOfCells());
 			this->grid->GetCellData()->AddArray(toAdd);
-		}	
+		}
 	}
 
 }
