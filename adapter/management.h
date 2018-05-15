@@ -119,7 +119,11 @@ private:
 	vtkSMProxy *m_px;
 	vtkSMSourceProxy *m_spx;
 
+	vtkSMProxy *m_px2;
+	vtkSMSourceProxy *m_spx2;
 
+	vtkSmartPointer<vtkTable> m_tplo;
+	vtkIdType m_row;
 
 
 
@@ -160,6 +164,11 @@ inline managementClass::managementClass() {
 	this->m_tstep = 0;
 	this->m_time = 0.0;
 	this->isRVE = false;
+
+	this->m_tplo =
+			vtkSmartPointer<vtkTable>::New();
+	this->m_row=0;
+
 }
 
 /**
@@ -201,6 +210,10 @@ inline void managementClass::initialize(char * sname)
 		it.second.clear();
 	}
 	this->gridMapper.clear();
+
+	this->m_tplo->ReleaseData();
+	this->m_row=0;
+
 }
 
 
@@ -283,6 +296,23 @@ inline void managementClass::SetFieldData(const int & main, const T * data, cons
 			it2.second.SetFieldData(data, num_comp, name);
 		}
 	}
+
+	if(this->m_tplo->GetColumnByName(name)==0){
+		vtkSmartPointer<vtkDoubleArray> toAdd =
+				vtkSmartPointer<vtkDoubleArray>::New();
+		toAdd->SetName(name);
+		vtkIdType rows = this->m_tplo->GetNumberOfRows();
+		toAdd->SetNumberOfComponents(1);
+		toAdd->SetNumberOfTuples(rows);
+		this->m_tplo->AddColumn(toAdd);
+
+	}
+
+	vtkIdType row  = this->m_tplo->GetNumberOfRows();
+	if(row==0){
+		this->m_tplo->SetNumberOfRows(1);
+	}
+	this->m_tplo->SetValueByName(row-1,name,data[0]);
 
 }
 
@@ -567,8 +597,9 @@ inline void managementClass::CoProcess()
 		this->m_spx = vtkSMSourceProxy::SafeDownCast(this->m_px);
 		vtkSMSourceProxy *spx2= vtkSMSourceProxy::SafeDownCast(px2);
 
-		this->m_spxm->RegisterProxy("sources", this->m_spx);
-		this->m_spxm->RegisterProxy("sources", px2);
+		this->m_spxm->RegisterProxy("sources", "Mesh", this->m_spx);
+		this->m_spxm->RegisterProxy("sources", "tplo",px2);
+
 
 		vtkObjectBase *obase = this->m_spx->GetClientSideObject();
 		vtkObjectBase *obase2 = spx2->GetClientSideObject();
@@ -577,10 +608,7 @@ inline void managementClass::CoProcess()
 			vtkPVTrivialProducer::SafeDownCast(obase);
 		vtkPVTrivialProducer *prod2 =
 			vtkPVTrivialProducer::SafeDownCast(obase2);
-		
-		prod->SetOutput(this->m_toplot, this->m_time);
-		
-		this->m_spx->GetDataInformation()->Print(std::cout);
+
 
 
 		vtkSmartPointer<vtkTable> table =
@@ -620,7 +648,10 @@ inline void managementClass::CoProcess()
 		line->SetWidth(1.0);
 
 
-		prod2->SetOutput(table, this->m_time);
+
+		prod->SetOutput(this->m_toplot, this->m_time);
+		prod2->SetOutput(this->m_tplo, this->m_time);
+
 
 		this->m_link->Initialize(this->m_spxm);
 
