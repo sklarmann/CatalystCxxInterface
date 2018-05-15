@@ -27,6 +27,21 @@
 #include <vtkSMInputProperty.h>
 #include <vtkInformation.h>
 
+
+#include <vtkVersion.h>
+#include <vtkRenderer.h>
+#include <vtkRenderWindowInteractor.h>
+#include <vtkRenderWindow.h>
+#include <vtkSmartPointer.h>
+#include <vtkChartXY.h>
+#include <vtkTable.h>
+#include <vtkPlot.h>
+#include <vtkFloatArray.h>
+#include <vtkContextView.h>
+#include <vtkContextScene.h>
+#include <vtkPen.h>
+#include <vtkPVDataInformation.h>
+
 class managementClass {
 public:
 	managementClass();
@@ -408,7 +423,8 @@ inline void managementClass::writeFile()
 	std::string folder;
 	if (this->isRVE) this->pvdCollectionReader();
 
-	std::stringstream temp, temp2;
+	std::stringstream temp, temp2, relName;
+	relName << this->m_baseFileName << "/" << this->m_baseFileName << this->writerStep << ".vtm";
 	temp << this->m_path << "/parvout/" << this->m_baseFileName << "/";
 	folder = temp.str();
 	temp << this->m_baseFileName << this->writerStep << ".vtm";
@@ -427,7 +443,7 @@ inline void managementClass::writeFile()
 	//pwriter->SetCompressorTypeToLZ4();
 	pwriter->Write();
 
-	this->writerTimeMap[this->m_time] = temp.str();
+	this->writerTimeMap[this->m_time] = relName.str();
 	this->fileWritten = true;
 
 	this->pvdCollectionWriter();
@@ -546,14 +562,65 @@ inline void managementClass::CoProcess()
 
 
 		this->m_px = this->m_spxm->NewProxy("sources", "PVTrivialProducer");
+		vtkSMProxy *px2 = this->m_spxm->NewProxy("sources", "PVTrivialProducer");
+
 		this->m_spx = vtkSMSourceProxy::SafeDownCast(this->m_px);
+		vtkSMSourceProxy *spx2= vtkSMSourceProxy::SafeDownCast(px2);
+
 		this->m_spxm->RegisterProxy("sources", this->m_spx);
+		this->m_spxm->RegisterProxy("sources", px2);
+
 		vtkObjectBase *obase = this->m_spx->GetClientSideObject();
+		vtkObjectBase *obase2 = spx2->GetClientSideObject();
+
 		vtkPVTrivialProducer *prod =
 			vtkPVTrivialProducer::SafeDownCast(obase);
-
+		vtkPVTrivialProducer *prod2 =
+			vtkPVTrivialProducer::SafeDownCast(obase2);
+		
 		prod->SetOutput(this->m_toplot, this->m_time);
+		
+		this->m_spx->GetDataInformation()->Print(std::cout);
 
+
+		vtkSmartPointer<vtkTable> table =
+			vtkSmartPointer<vtkTable>::New();
+
+		vtkSmartPointer<vtkFloatArray> arrX =
+			vtkSmartPointer<vtkFloatArray>::New();
+		arrX->SetName("X Axis");
+		table->AddColumn(arrX);
+
+		vtkSmartPointer<vtkFloatArray> arrC =
+			vtkSmartPointer<vtkFloatArray>::New();
+		arrC->SetName("Cosine");
+		table->AddColumn(arrC);
+
+		vtkSmartPointer<vtkFloatArray> arrS =
+			vtkSmartPointer<vtkFloatArray>::New();
+		arrS->SetName("Sine");
+		table->AddColumn(arrS);
+
+		// Fill in the table with some example values
+		int numPoints = 69;
+		float inc = 7.5 / (numPoints - 1);
+		table->SetNumberOfRows(numPoints);
+		for (int i = 0; i < numPoints; ++i)
+		{
+			table->SetValue(i, 0, i * inc);
+			table->SetValue(i, 1, cos(i * inc));
+			table->SetValue(i, 2, sin(i * inc));
+		}
+
+		vtkSmartPointer<vtkChartXY> chart =
+			vtkSmartPointer<vtkChartXY>::New();
+		vtkPlot *line = chart->AddPlot(vtkChart::LINE);
+		line->SetInputData(table, 0, 1);
+		line->SetColor(0, 255, 0, 255);
+		line->SetWidth(1.0);
+
+
+		prod2->SetOutput(table, this->m_time);
 
 		this->m_link->Initialize(this->m_spxm);
 
