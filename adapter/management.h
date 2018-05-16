@@ -28,19 +28,8 @@
 #include <vtkInformation.h>
 
 
-#include <vtkVersion.h>
-#include <vtkRenderer.h>
-#include <vtkRenderWindowInteractor.h>
-#include <vtkRenderWindow.h>
-#include <vtkSmartPointer.h>
-#include <vtkChartXY.h>
+
 #include <vtkTable.h>
-#include <vtkPlot.h>
-#include <vtkFloatArray.h>
-#include <vtkContextView.h>
-#include <vtkContextScene.h>
-#include <vtkPen.h>
-#include <vtkPVDataInformation.h>
 
 class managementClass {
 public:
@@ -93,9 +82,9 @@ public:
 private:
 	bool checkGrid(const int &main,const int &part);
 	void addGrid(const int &main, const int &part);
-	void checkTploArray(char *name);
+	void checkTploArray(const char *name);
 	void checkTploSize();
-	void addTploValue(char *name, double &value);
+	void addTploValue(const char *name, double &value);
 
 
 	vtkSmartPointer<vtkMultiBlockDataSet> m_toplot;
@@ -124,6 +113,9 @@ private:
 
 	vtkSMProxy *m_px2;
 	vtkSMSourceProxy *m_spx2;
+
+	vtkPVTrivialProducer *m_meshProd;
+	vtkPVTrivialProducer *m_tploProd;
 
 	vtkSmartPointer<vtkTable> m_tplo;
 	vtkIdType m_row;
@@ -183,6 +175,9 @@ inline managementClass::managementClass() {
 	this->m_spxm=0;
 	this->m_link=0;
 	this->fileWritten = false;
+
+	this->m_meshProd = 0;
+	this->m_tploProd = 0;
 }
 
 /**
@@ -227,6 +222,21 @@ inline void managementClass::initialize(char * sname)
 
 	this->m_tplo->ReleaseData();
 	this->m_row=0;
+
+	char *buffer = new char[5];
+	buffer[0] = 'T';
+	buffer[1] = 'i';
+	buffer[2] = 'm';
+	buffer[3] = 'e';
+
+	buffer[4] = '\0';
+	++this->m_row;
+	this->addTploValue(buffer, this->m_time);
+	//this->checkTploArray(buffer);
+	//this->m_tplo->InsertNextBlankRow();
+	//++this->m_row;
+	//this->addTploValue(buffer, this->m_time);
+	delete buffer;
 
 }
 
@@ -310,24 +320,9 @@ inline void managementClass::SetFieldData(const int & main, const T * data, cons
 			it2.second.SetFieldData(data, num_comp, name);
 		}
 	}
-
-	if(this->m_tplo->GetColumnByName(name)==0){
-		vtkSmartPointer<vtkDoubleArray> toAdd =
-				vtkSmartPointer<vtkDoubleArray>::New();
-		toAdd->SetName(name);
-		vtkIdType rows = this->m_tplo->GetNumberOfRows();
-		toAdd->SetNumberOfComponents(1);
-		toAdd->SetNumberOfTuples(rows);
-		this->m_tplo->AddColumn(toAdd);
-		vtkDoubleArray::SafeDownCast(this->m_tplo->GetColumnByName(name))->InsertNextTuple1(0);
-
-	}
-
-	//vtkIdType row  = this->m_tplo->GetNumberOfRows();
-	//if(row==0){
-	//	this->m_tplo->SetNumberOfRows(1);
-	//}
-	//this->m_tplo->SetValueByName(row-1,name,data[0]);
+	//this->checkTploArray(name);
+	double addData = static_cast<double>(data[0]);
+	this->addTploValue(name, addData);
 
 }
 
@@ -346,6 +341,9 @@ inline void managementClass::TimeUpdate(double & time)
 			this->fileWritten = false;
 		}
 	}
+
+
+
 	char *buffer = new char[5];
 	buffer[0] = 'T';
 	buffer[1] = 'i';
@@ -353,9 +351,14 @@ inline void managementClass::TimeUpdate(double & time)
 	buffer[3] = 'e';
 
 	buffer[4] = '\0';
-	this->addTploValue(buffer, this->m_time);
-	delete buffer;
 	++this->m_row;
+	this->addTploValue(buffer, this->m_time);
+	//this->checkTploArray(buffer);
+	//this->m_tplo->InsertNextBlankRow();
+	//++this->m_row;
+	//this->addTploValue(buffer, this->m_time);
+	delete buffer;
+	std::cout << "deleted buffer";
 }
 
 inline vtkUnstructuredGrid * managementClass::getGrid(const int &main, const int &part)
@@ -629,53 +632,19 @@ inline void managementClass::CoProcess()
 		vtkObjectBase *obase = this->m_spx->GetClientSideObject();
 		vtkObjectBase *obase2 = spx2->GetClientSideObject();
 
-		vtkPVTrivialProducer *prod =
+
+		this->m_meshProd =
 			vtkPVTrivialProducer::SafeDownCast(obase);
-		vtkPVTrivialProducer *prod2 =
+		this->m_tploProd =
 			vtkPVTrivialProducer::SafeDownCast(obase2);
 
+		
+		
+		this->m_meshProd->SetOutput(this->m_toplot, this->m_time);
+		this->m_tploProd->SetOutput(this->m_tplo, this->m_time);
 
-
-		vtkSmartPointer<vtkTable> table =
-			vtkSmartPointer<vtkTable>::New();
-
-		vtkSmartPointer<vtkFloatArray> arrX =
-			vtkSmartPointer<vtkFloatArray>::New();
-		arrX->SetName("X Axis");
-		table->AddColumn(arrX);
-
-		vtkSmartPointer<vtkFloatArray> arrC =
-			vtkSmartPointer<vtkFloatArray>::New();
-		arrC->SetName("Cosine");
-		table->AddColumn(arrC);
-
-		vtkSmartPointer<vtkFloatArray> arrS =
-			vtkSmartPointer<vtkFloatArray>::New();
-		arrS->SetName("Sine");
-		table->AddColumn(arrS);
-
-		// Fill in the table with some example values
-		int numPoints = 69;
-		float inc = 7.5 / (numPoints - 1);
-		table->SetNumberOfRows(numPoints);
-		for (int i = 0; i < numPoints; ++i)
-		{
-			table->SetValue(i, 0, i * inc);
-			table->SetValue(i, 1, cos(i * inc));
-			table->SetValue(i, 2, sin(i * inc));
-		}
-
-		vtkSmartPointer<vtkChartXY> chart =
-			vtkSmartPointer<vtkChartXY>::New();
-		vtkPlot *line = chart->AddPlot(vtkChart::LINE);
-		line->SetInputData(table, 0, 1);
-		line->SetColor(0, 255, 0, 255);
-		line->SetWidth(1.0);
-
-
-
-		prod->SetOutput(this->m_toplot, this->m_time);
-		prod2->SetOutput(this->m_tplo, this->m_time);
+		this->m_meshProd->UpdateTimeStep(0.0);
+		this->m_tploProd->UpdateTimeStep(0.0);
 
 
 		this->m_link->Initialize(this->m_spxm);
@@ -708,18 +677,28 @@ inline void managementClass::Update()
 	}
 }
 
-inline void managementClass::checkTploArray(char *name){
+inline void managementClass::checkTploArray(const char *name){
+	
 	if(this->m_tplo->GetColumnByName(name)==0){
 		vtkSmartPointer<vtkDoubleArray> toAdd =
 				vtkSmartPointer<vtkDoubleArray>::New();
 		toAdd->SetName(name);
+		vtkIdType numrows = this->m_tplo->GetNumberOfRows();
+		for (auto i = 0; i < numrows; ++i) {
+			toAdd->InsertNextTuple1(0.0);
+		}
 		this->m_tplo->AddColumn(toAdd);
 	}
 }
 
-inline void managementClass::addTploValue(char *name, double &value){
+inline void managementClass::addTploValue(const char *name, double &value){
 	this->checkTploArray(name);
-	this->checkTploSize();
+
+	if (this->m_tplo->GetNumberOfRows() < this->m_row) {
+		this->m_tplo->InsertNextBlankRow();
+	}
+	this->m_tplo->SetValueByName(this->m_row - 1, name, value);
+	//this->checkTploSize();
 
 }
 
