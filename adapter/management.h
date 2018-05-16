@@ -93,6 +93,9 @@ public:
 private:
 	bool checkGrid(const int &main,const int &part);
 	void addGrid(const int &main, const int &part);
+	void checkTploArray(char *name);
+	void checkTploSize();
+	void addTploValue(char *name, double &value);
 
 
 	vtkSmartPointer<vtkMultiBlockDataSet> m_toplot;
@@ -168,7 +171,18 @@ inline managementClass::managementClass() {
 	this->m_tplo =
 			vtkSmartPointer<vtkTable>::New();
 	this->m_row=0;
+	this->m_proc = 0;
+	this->writerStep = 0;
+	this->m_needCoProc = 0;
+	this->m_paraIsInit = false;
 
+	this->m_spx = 0;
+	this->m_spx2 = 0;
+	this->m_px=0;
+	this->m_px2=0;
+	this->m_spxm=0;
+	this->m_link=0;
+	this->fileWritten = false;
 }
 
 /**
@@ -305,14 +319,15 @@ inline void managementClass::SetFieldData(const int & main, const T * data, cons
 		toAdd->SetNumberOfComponents(1);
 		toAdd->SetNumberOfTuples(rows);
 		this->m_tplo->AddColumn(toAdd);
+		vtkDoubleArray::SafeDownCast(this->m_tplo->GetColumnByName(name))->InsertNextTuple1(0);
 
 	}
 
-	vtkIdType row  = this->m_tplo->GetNumberOfRows();
-	if(row==0){
-		this->m_tplo->SetNumberOfRows(1);
-	}
-	this->m_tplo->SetValueByName(row-1,name,data[0]);
+	//vtkIdType row  = this->m_tplo->GetNumberOfRows();
+	//if(row==0){
+	//	this->m_tplo->SetNumberOfRows(1);
+	//}
+	//this->m_tplo->SetValueByName(row-1,name,data[0]);
 
 }
 
@@ -331,6 +346,16 @@ inline void managementClass::TimeUpdate(double & time)
 			this->fileWritten = false;
 		}
 	}
+	char *buffer = new char[5];
+	buffer[0] = 'T';
+	buffer[1] = 'i';
+	buffer[2] = 'm';
+	buffer[3] = 'e';
+
+	buffer[4] = '\0';
+	this->addTploValue(buffer, this->m_time);
+	delete buffer;
+	++this->m_row;
 }
 
 inline vtkUnstructuredGrid * managementClass::getGrid(const int &main, const int &part)
@@ -680,5 +705,31 @@ inline void managementClass::Update()
 		this->m_link->InsituUpdate(this->m_time, this->m_tstep);
 		this->m_spx->UpdatePipeline(this->m_time);
 		this->m_link->InsituPostProcess(this->m_time, this->m_tstep);
+	}
+}
+
+inline void managementClass::checkTploArray(char *name){
+	if(this->m_tplo->GetColumnByName(name)==0){
+		vtkSmartPointer<vtkDoubleArray> toAdd =
+				vtkSmartPointer<vtkDoubleArray>::New();
+		toAdd->SetName(name);
+		this->m_tplo->AddColumn(toAdd);
+	}
+}
+
+inline void managementClass::addTploValue(char *name, double &value){
+	this->checkTploArray(name);
+	this->checkTploSize();
+
+}
+
+inline void managementClass::checkTploSize(){
+	vtkIdType ncols = this->m_tplo->GetNumberOfColumns();
+	for(auto i=0;i<ncols;++i){
+		vtkDoubleArray *arr = vtkDoubleArray::SafeDownCast(this->m_tplo->GetColumn(i));
+		while(arr->GetNumberOfTuples() <= this->m_row){
+			//std::cout << arr->GetNumberOfTuples();
+			arr->InsertNextTuple1(0.0);
+		}
 	}
 }
