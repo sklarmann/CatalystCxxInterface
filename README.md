@@ -1,6 +1,6 @@
 # CatalystCxxInterface
 
-This Project provides a pure C++ Interface to Paraviews CoProcessing capabilities (Catalyst) (http:\\www.paraview.org).
+This Project provides a pure C++ Interface to Paraviews CoProcessing capabilities (Catalyst) (www.paraview.org).
 
 The Code generates a dynamic library. Currently the code is only tested on Windows and will not work under Linux.
 
