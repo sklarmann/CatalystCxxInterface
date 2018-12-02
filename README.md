@@ -8,7 +8,7 @@ At the current state the code is quite messy and I hope I find some time to clea
 
 However I think some of you may be interested in the C++ part for the communication with Paraview. The specific methods can be found in:
 
-management.cpp:  
+management.h:  
   CoProcess(), which sets up the link to Paraview and Update(), which transfers the data to Paraview
   
   
